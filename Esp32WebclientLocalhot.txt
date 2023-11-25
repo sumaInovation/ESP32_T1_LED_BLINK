@@ -1,0 +1,69 @@
+#include <Arduino.h>
+#include <WiFi.h>
+#include <WebSocketsClient.h>
+#include <ArduinoJson.h>
+#define OnBord_LED 2
+#define SSID "Dialog 4G 732"
+#define PASSWORD "5AD445f5"
+#define WS_HOST "192.168.8.196"// This is my Laptop IP Adress Laptop And ESp32 Connect to same WIFI connection
+#define WS_PORT 443
+#define WS_URL "/"
+WebSocketsClient wsclient;
+ String really ="";
+void wsOnevent(WStype_t type, uint8_t *payload, size_t length)
+{
+  switch (type)
+  {
+  case WStype_CONNECTED:
+       Serial.println("Connected");
+       
+    break;
+  case WStype_DISCONNECTED:
+  Serial.println("Disconnected");
+  
+    break;
+  case WStype_TEXT:
+     Serial.printf("WS message :%s\n",payload);
+     really = (char * )payload;
+     if(really=="LEDON"){
+      digitalWrite(OnBord_LED, HIGH);
+     }
+     if(really=="LEDOFF"){
+      digitalWrite(OnBord_LED, LOW);
+     }
+    break;
+     
+  default:
+    break;
+  }
+}
+void setup()
+{
+  pinMode(OnBord_LED, OUTPUT);
+
+  Serial.begin(115200);
+
+  WiFi.begin(SSID, PASSWORD);
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    digitalWrite(OnBord_LED, LOW);
+    Serial.print(".");
+    delay(1000);
+  }
+  Serial.print("ESp32 Connect to:");
+  Serial.println(WiFi.localIP());
+  ;
+  digitalWrite(OnBord_LED, WiFi.status() == WL_CONNECTED);
+  //wsclient.beginSSL(WS_HOST, WS_PORT, WS_URL, "", "wss");
+  wsclient.begin("192.168.8.196",8000,"/","ws");
+  wsclient.onEvent(wsOnevent);
+}
+long T=0;
+void loop()
+{
+  wsclient.loop();
+  if(millis()-T>1000){
+    wsclient.sendTXT("hello");
+    T=millis();
+  }
+}
